@@ -1,5 +1,9 @@
-## 1.0.0
+# 0.1.1
 
-* Initial Version of the library.
+Minor Updates to Documentation
+
+# 1.0.0
+
+Initial Version of the library.
 
 
