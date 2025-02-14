@@ -37,10 +37,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final TextStyle canStyle =
-      TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: const Color(0xff29DE92));
-  final TextStyle cannotStyle =
-      TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: const Color(0xffE33E5A));
+  final TextStyle canStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: const Color(0xff29DE92));
+  final TextStyle cannotStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: const Color(0xffE33E5A));
 
   void updateRules(BuildContext context) {
     final rules = getRules();
