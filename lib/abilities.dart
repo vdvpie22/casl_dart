@@ -28,12 +28,26 @@ class CaslDart extends ChangeNotifier {
   }
 
   /// Updates the existing rules with a new set of [newRules].
+  ///
+  /// This method clears the current rules and replaces them with the provided [newRules],
+  /// converting each map into a `Rule` object. After updating, it notifies listeners
+  /// to rebuild the `Can` widget or any widget that calls `CaslProvider.of(context)`.
+  ///
+  /// **Note:** Do not call this method inside `initState` or during the screen build process,
+  /// as it may cause unnecessary widget rebuilds or unexpected behavior.
+  /// Instead, use `initRules` to initialize rules properly.
   void updateRules(List<Map<String, dynamic>> newRules) {
     rules.clear();
     rules.addAll(newRules.map((r) => Rule.fromMap(r)));
     notifyListeners();
   }
 
+  /// Initializes the rules with a new set of [newRules].
+  ///
+  /// This method clears the current rules and replaces them with the provided [newRules],
+  /// converting each map into a `Rule` object. Unlike `updateRules`, this method
+  /// does not notify listeners, so it will not trigger a rebuild for the `Can` widget
+  /// or any widget that calls `CaslProvider.of(context)`.
   void initRules(List<Map<String, dynamic>> newRules) {
     rules.clear();
     rules.addAll(newRules.map((r) => Rule.fromMap(r)));

@@ -49,11 +49,8 @@ class _MyHomePageState extends State<MyHomePage> {
     casl.updateRules(casl.unpackRules(rules));
   }
 
-
-
   @override
   void initState() {
-
     super.initState();
   }
 
@@ -144,6 +141,7 @@ class _IntroScreenState extends State<IntroScreen> {
     final casl = CaslProvider.of(context);
     casl.initRules(casl.unpackRules(rules));
   }
+
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -152,12 +150,21 @@ class _IntroScreenState extends State<IntroScreen> {
 
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(child: ElevatedButton(onPressed: (){
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) => MyHomePage(title: 'Casl Demo Home Page',),));
-      }, child: Text("Home")),),
+      body: Center(
+        child: ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => MyHomePage(
+                  title: 'Casl Demo Home Page',
+                ),
+              ));
+            },
+            child: Text("Home")),
+      ),
     );
   }
 }
