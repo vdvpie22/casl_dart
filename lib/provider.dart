@@ -6,19 +6,16 @@ import 'abilities.dart';
 ///
 /// This widget allows descendant widgets to access the [CaslDart] instance
 /// for permission checks.
-class CaslProvider extends InheritedWidget {
-  /// The [CaslDart] instance that manages access control rules.
-  final CaslDart casl;
-
+class CaslProvider extends InheritedNotifier<CaslDart> {
   /// Creates a [CaslProvider] widget.
   ///
   /// The [casl] parameter is required and provides access control rules.
   /// The [child] parameter is the widget subtree that can access [CaslDart].
   const CaslProvider({
     Key? key,
-    required this.casl,
+    required CaslDart casl,
     required Widget child,
-  }) : super(key: key, child: child);
+  }) : super(key: key, child: child, notifier: casl);
 
   /// Retrieves the nearest [CaslProvider] instance in the widget tree.
   ///
@@ -27,10 +24,11 @@ class CaslProvider extends InheritedWidget {
     final CaslProvider? provider =
         context.dependOnInheritedWidgetOfExactType<CaslProvider>();
     assert(provider != null, 'No CaslProvider found in context');
-    return provider!.casl;
+    return provider!.notifier!;
   }
 
   @override
-  bool updateShouldNotify(CaslProvider oldWidget) =>
-      oldWidget.casl.rules != casl.rules;
+  bool updateShouldNotify(InheritedNotifier<CaslDart> oldWidget) {
+    return oldWidget.notifier!.rules != notifier!.rules;
+  }
 }

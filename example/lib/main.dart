@@ -5,7 +5,7 @@ import 'package:example/rules_data.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(CaslProvider(casl: CaslDart(), child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -13,16 +13,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CaslProvider(
-      casl: CaslDart(),
-      child: MaterialApp(
-        title: 'Casl Demo',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        home: const MyHomePage(title: 'Casl Demo Home Page'),
+    return MaterialApp(
+      title: 'Casl Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
+      home: const IntroScreen(),
     );
   }
 }
@@ -47,26 +44,31 @@ class _MyHomePageState extends State<MyHomePage> {
       color: const Color(0xffE33E5A));
 
   void updateRules(BuildContext context) {
-    final rules = getRules();
+    final rules = getNewRules();
     final casl = CaslProvider.of(context);
     casl.updateRules(casl.unpackRules(rules));
   }
 
+
+
   @override
-  void didChangeDependencies() {
-    updateRules(context);
-    super.didChangeDependencies();
+  void initState() {
+
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    final ability = CaslProvider.of(context);
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
+      floatingActionButton: FloatingActionButton(
+          child: Icon(Icons.edit),
+          onPressed: () {
+            updateRules(context);
+          }),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -77,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
               I: 'create',
               a: 'Vehicle',
               child: Text(
-                "Yes, you can do this! ;)",
+                "Yes, you can create a Vehicle! ;)",
                 style: canStyle,
               ),
             ),
@@ -90,19 +92,72 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: cannotStyle,
               ),
             ),
-            if (ability.can("read", "CustomerPlan"))
-              Text(
-                "Yes, you can do this! ;)",
-                style: canStyle,
-              ),
-            if (!ability.can("update", "CustomerPlan"))
-              Text(
-                "You are not allowed to update a CustomerPlan",
-                style: cannotStyle,
-              ),
+            AbilitiesWidget(
+              cannotStyle: cannotStyle,
+              canStyle: canStyle,
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class AbilitiesWidget extends StatelessWidget {
+  final TextStyle canStyle;
+  final TextStyle cannotStyle;
+  const AbilitiesWidget(
+      {super.key, required this.cannotStyle, required this.canStyle});
+  @override
+  Widget build(BuildContext context) {
+    final ability = CaslProvider.of(context);
+
+    return Column(
+      spacing: 20,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (ability.can("read", "CustomerPlan"))
+          Text(
+            "Yes, you can do this! ;)",
+            style: canStyle,
+          ),
+        if (!ability.can("update", "CustomerPlan"))
+          Text(
+            "You are not allowed to update a CustomerPlan",
+            style: cannotStyle,
+          ),
+      ],
+    );
+  }
+}
+
+class IntroScreen extends StatefulWidget {
+  const IntroScreen({super.key});
+
+  @override
+  State<IntroScreen> createState() => _IntroScreenState();
+}
+
+class _IntroScreenState extends State<IntroScreen> {
+  void initRules(BuildContext context) {
+    final rules = getRules();
+    final casl = CaslProvider.of(context);
+    casl.initRules(casl.unpackRules(rules));
+  }
+  @override
+  void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      initRules(context);
+    });
+
+    super.initState();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(child: ElevatedButton(onPressed: (){
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => MyHomePage(title: 'Casl Demo Home Page',),));
+      }, child: Text("Home")),),
     );
   }
 }
