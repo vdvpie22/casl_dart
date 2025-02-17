@@ -1,4 +1,4 @@
-# [1.1.1]
+# 1.1.1
 
 ## Added
 - **Context parameter** to `abilityBuilder` in `Can.builder`:
