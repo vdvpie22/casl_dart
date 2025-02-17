@@ -98,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Can.builder(
               I: 'delete',
               a: 'Trip',
-              abilityBuilder: (hasPermission) {
+              abilityBuilder: (context, hasPermission) {
                 return ElevatedButton(
                     onPressed: hasPermission ? onDeleteTrip : null,
                     child: Text("Delete Trip"));

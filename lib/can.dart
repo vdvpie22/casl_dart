@@ -22,7 +22,8 @@ class Can extends StatelessWidget {
   ///
   /// This is useful when the UI needs to respond to the permission result dynamically rather than
   /// just showing a predefined [child].
-  final Widget Function(bool hasPermission)? abilityBuilder;
+  final Widget Function(BuildContext context, bool hasPermission)?
+      abilityBuilder;
 
   /// Creates a [Can] widget that displays [child] if permission is granted.
   ///
@@ -67,7 +68,7 @@ class Can extends StatelessWidget {
           ? (!hasPermission ? child! : (fallback ?? SizedBox.shrink()))
           : (hasPermission ? child! : (fallback ?? SizedBox.shrink()));
     } else {
-      return abilityBuilder!(hasPermission);
+      return abilityBuilder!(context, hasPermission);
     }
   }
 }
