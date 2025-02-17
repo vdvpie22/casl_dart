@@ -36,10 +36,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final TextStyle canStyle =
-      TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: const Color(0xff29DE92));
-  final TextStyle cannotStyle =
-      TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: const Color(0xffE33E5A));
+  final TextStyle canStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: const Color(0xff29DE92));
+  final TextStyle cannotStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: const Color(0xffE33E5A));
 
   void updateRules(BuildContext context) {
     final rules = getNewRules();
@@ -96,7 +100,8 @@ class _MyHomePageState extends State<MyHomePage> {
               a: 'Trip',
               abilityBuilder: (hasPermission) {
                 return ElevatedButton(
-                    onPressed: hasPermission ? onDeleteTrip : null, child: Text("Delete Trip"));
+                    onPressed: hasPermission ? onDeleteTrip : null,
+                    child: Text("Delete Trip"));
               },
             ),
             AbilitiesWidget(
@@ -114,7 +119,8 @@ class AbilitiesWidget extends StatelessWidget {
   final TextStyle canStyle;
   final TextStyle cannotStyle;
 
-  const AbilitiesWidget({super.key, required this.cannotStyle, required this.canStyle});
+  const AbilitiesWidget(
+      {super.key, required this.cannotStyle, required this.canStyle});
 
   @override
   Widget build(BuildContext context) {

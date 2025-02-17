@@ -53,7 +53,8 @@ class Can extends StatelessWidget {
     required this.a,
     required this.abilityBuilder,
     this.not = false,
-  })  : child = null,fallback= null,
+  })  : child = null,
+        fallback = null,
         super(key: key);
 
   @override
