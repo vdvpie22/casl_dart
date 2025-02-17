@@ -10,7 +10,7 @@ class Can extends StatelessWidget {
   final String a;
 
   /// The widget to display if permission is granted.
-  final Widget child;
+  final Widget? child;
 
   /// The widget to display if permission is denied. Defaults to an empty widget.
   final Widget? fallback;
@@ -18,11 +18,19 @@ class Can extends StatelessWidget {
   /// If `true`, reverses the permission logic (renders [child] if permission is denied).
   final bool not;
 
-  /// Creates a [Can] widget.
+  /// A builder function that receives the permission result and returns a widget dynamically.
   ///
-  /// [I] is the subject, [a] is the action, and [child] is the widget displayed if the permission check passes.
-  /// If [not] is `true`, the logic is reversed, displaying [child] when the check fails.
-  /// An optional [fallback] widget is displayed if the permission check does not pass.
+  /// This is useful when the UI needs to respond to the permission result dynamically rather than
+  /// just showing a predefined [child].
+  final Widget Function(bool hasPermission)? abilityBuilder;
+
+  /// Creates a [Can] widget that displays [child] if permission is granted.
+  ///
+  /// - [I] represents the action being checked.
+  /// - [a] represents the subject being checked.
+  /// - [child] is displayed if permission is granted.
+  /// - [fallback] is displayed if permission is denied (defaults to an empty widget).
+  /// - If [not] is `true`, the logic is reversed, displaying [child] when permission is denied.
   const Can({
     Key? key,
     required this.I,
@@ -30,15 +38,35 @@ class Can extends StatelessWidget {
     required this.child,
     this.not = false,
     this.fallback,
-  }) : super(key: key);
+  })  : abilityBuilder = null,
+        super(key: key);
+
+  /// Creates a [Can] widget using a builder function to dynamically generate the widget based on permissions.
+  ///
+  /// - [I] represents the action being checked.
+  /// - [a] represents the subject being checked.
+  /// - [abilityBuilder] is called with the permission result (`true` if allowed, `false` otherwise).
+  /// - If [not] is `true`, the logic is reversed.
+  const Can.builder({
+    Key? key,
+    required this.I,
+    required this.a,
+    required this.abilityBuilder,
+    this.not = false,
+  })  : child = null,fallback= null,
+        super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final casl = CaslProvider.of(context);
     bool hasPermission = casl.can(I, a);
 
-    return not
-        ? (!hasPermission ? child : (fallback ?? SizedBox.shrink()))
-        : (hasPermission ? child : (fallback ?? SizedBox.shrink()));
+    if (child != null) {
+      return not
+          ? (!hasPermission ? child! : (fallback ?? SizedBox.shrink()))
+          : (hasPermission ? child! : (fallback ?? SizedBox.shrink()));
+    } else {
+      return abilityBuilder!(hasPermission);
+    }
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:casl_dart/abilities.dart';
 import 'package:casl_dart/can.dart';
 import 'package:casl_dart/provider.dart';
@@ -34,19 +36,19 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final TextStyle canStyle = TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: const Color(0xff29DE92));
-  final TextStyle cannotStyle = TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-      color: const Color(0xffE33E5A));
+  final TextStyle canStyle =
+      TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: const Color(0xff29DE92));
+  final TextStyle cannotStyle =
+      TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: const Color(0xffE33E5A));
 
   void updateRules(BuildContext context) {
     final rules = getNewRules();
     final casl = CaslProvider.of(context);
     casl.updateRules(casl.unpackRules(rules));
+  }
+
+  void onDeleteTrip() {
+    log("Yes, you can delete a Trip! ;)");
   }
 
   @override
@@ -89,6 +91,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: cannotStyle,
               ),
             ),
+            Can.builder(
+              I: 'delete',
+              a: 'Trip',
+              abilityBuilder: (hasPermission) {
+                return ElevatedButton(
+                    onPressed: hasPermission ? onDeleteTrip : null, child: Text("Delete Trip"));
+              },
+            ),
             AbilitiesWidget(
               cannotStyle: cannotStyle,
               canStyle: canStyle,
@@ -103,8 +113,9 @@ class _MyHomePageState extends State<MyHomePage> {
 class AbilitiesWidget extends StatelessWidget {
   final TextStyle canStyle;
   final TextStyle cannotStyle;
-  const AbilitiesWidget(
-      {super.key, required this.cannotStyle, required this.canStyle});
+
+  const AbilitiesWidget({super.key, required this.cannotStyle, required this.canStyle});
+
   @override
   Widget build(BuildContext context) {
     final ability = CaslProvider.of(context);
