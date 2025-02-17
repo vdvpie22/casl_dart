@@ -1,3 +1,9 @@
+# [1.1.1]
+
+## Added
+- **Context parameter** to `abilityBuilder` in `Can.builder`:
+    - `abilityBuilder: (context, hasPermission) { ... }`
+  
 # 1.1.0
 
 ## Added

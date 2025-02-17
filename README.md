@@ -122,11 +122,11 @@ Can(
 ),
 
 Can(
-  I: 'delete',
+  I: 'update',
   a: 'Trip',
   not: true, // "not: true" inverts the check
   child: Text(
-    "You are not allowed to delete a trip",
+    "You are not allowed to update a trip",
     style: TextStyle(color: Colors.red),
   ),
 ),
@@ -138,7 +138,7 @@ Can(
 Can.builder(
   I: 'delete',
   a: 'Trip',
-  abilityBuilder: (hasPermission) {
+  abilityBuilder: (context, hasPermission) {
     return ElevatedButton(
       onPressed: hasPermission ? onDeleteTrip : null,
       child: Text("Delete Trip"),
