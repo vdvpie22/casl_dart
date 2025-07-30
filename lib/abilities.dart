@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 /// A function type that defines conditions for access control.
 typedef ConditionsFunction = bool Function(dynamic subject);
@@ -11,19 +11,49 @@ class CaslDart extends ChangeNotifier {
   /// Creates a new instance of [CaslDart] with an optional list of rules.
   ///
   /// [rules] is a list of maps where each map defines an access rule.
-  CaslDart({List<Map<String, dynamic>> rules = const []})
-      : rules = rules.map((r) => Rule.fromMap(r)).toList();
+  CaslDart({List<Map<String, dynamic>> rules = const []}) : rules = rules.map((r) => Rule.fromMap(r)).toList();
 
   /// Checks if a given [action] is allowed on a given [subject].
   ///
   /// Returns `true` if an access rule allows the action, otherwise `false`.
   bool can(String action, dynamic subject) {
+    final List<String> allSubjectOperations = [];
+    final List<String> manageActionSubjects = [];
+    bool allowAll = false;
+    for (var rule in rules) {
+      if (rule.subject.contains('all')) {
+        allSubjectOperations.addAll(rule.actions);
+      }
+      if (rule.actions.contains('manage')) {
+        manageActionSubjects.addAll(rule.subject);
+      }
+      // Check if there's a rule with subject 'all' for this action
+      if (rule.subject.contains('all') && rule.actions.contains('manage')) {
+        allowAll = true;
+      }
+    }
+
     return rules.any((rule) {
-      bool subjectMatches = rule.subject.contains(subject);
+      if (allowAll) {
+        return true;
+      }
 
-      bool actionMatches = rule.actions.contains(action);
+      // Check subject match (either specific subject or 'all')
+      bool subjectMatches = allSubjectOperations.contains(action) || rule.subject.contains(subject);
 
-      return subjectMatches && actionMatches;
+      // Check action match
+      bool actionMatches = manageActionSubjects.contains(subject) || rule.actions.contains(action);
+
+      if (!subjectMatches) {
+        // Don't apply the rule if we didn't find subject matches and not everything is allowed
+        return false;
+      }
+
+      // Determine if the action is allowed
+      bool allowed = subjectMatches && actionMatches;
+
+      // Apply inversion if needed
+      return rule.inverted && allowed ? !allowed : allowed;
     });
   }
 
@@ -83,10 +113,30 @@ class Rule {
   /// The list of subjects to which the actions apply.
   final List<String> subject;
 
+  /// The map of conditions to which the actions apply.
+  final Map<String, dynamic>? conditions;
+
+  /// The list of fields to which the actions apply.
+  final List<String>? fields;
+
+  /// Invert rule.
+  final bool inverted;
+
+  /// Reason to block access.
+  final String? reason;
+
+  /// Reason code to block access.
+  final int? reasonCode;
+
   /// Creates a new [Rule] instance.
   const Rule({
     required this.actions,
     required this.subject,
+    this.inverted = false,
+    this.conditions,
+    this.fields,
+    this.reason,
+    this.reasonCode,
   });
 
   /// Creates a [Rule] instance from a map.
@@ -97,16 +147,35 @@ class Rule {
     return Rule(
       actions: List<String>.from(map['actions'] ?? []),
       subject: List<String>.from(map['subject'] ?? []),
+      inverted: map['inverted'] ?? false,
+      conditions: map['conditions'] != null ? Map<String, dynamic>.from(map['conditions']) : null,
+      fields: map['fields'] != null ? List<String>.from(map['fields']) : null,
+      reason: map['reason'],
+      reasonCode: map['reasonCode'],
     );
   }
 
   @override
   bool operator ==(Object other) {
-    return (other is Rule) &&
-        other.subject == subject &&
-        other.actions == actions;
+    if (identical(this, other)) return true;
+    return other is Rule &&
+        listEquals(other.actions, actions) &&
+        listEquals(other.subject, subject) &&
+        mapEquals(other.conditions, conditions) &&
+        listEquals(other.fields, fields) &&
+        other.inverted == inverted &&
+        other.reason == reason &&
+        other.reasonCode == reasonCode;
   }
 
   @override
-  int get hashCode => subject.hashCode ^ actions.hashCode;
+  int get hashCode {
+    return actions.hashCode ^
+        subject.hashCode ^
+        conditions.hashCode ^
+        fields.hashCode ^
+        inverted.hashCode ^
+        reason.hashCode ^
+        reasonCode.hashCode;
+  }
 }
