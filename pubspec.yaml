@@ -1,9 +1,9 @@
 name: casl_dart
 description: "A Dart implementation of CASL.js for managing access control in Flutter apps with dynamic permission handling."
-version: 1.1.1
-homepage: https://github.com/Mohammed-Shatara
-repository: https://github.com/Mohammed-Shatara/casl_dart
-issue_tracker: https://github.com/Mohammed-Shatara/casl_dart/issues
+version: 1.1.2
+homepage: https://github.com/vdvpie22
+repository: https://github.com/vdvpie22/casl_dart
+issue_tracker: https://github.com/vdvpie22/casl_dart/issues
 license: MIT
 
 environment:
