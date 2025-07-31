@@ -2,8 +2,61 @@ import 'package:casl_dart/abilities.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('Rule', () {
-    test('should create Rule from map with all fields', () {
+  group('BlockReason class', () {
+    test('creates instance with both text and code', () {
+      final blockReason = BlockReason(text: 'Access denied', code: 403);
+      
+      expect(blockReason.text, 'Access denied');
+      expect(blockReason.code, 403);
+    });
+
+    test('creates instance with text only', () {
+      final blockReason = BlockReason(text: 'Not authorized');
+      
+      expect(blockReason.text, 'Not authorized');
+      expect(blockReason.code, isNull);
+    });
+
+    test('creates instance with code only', () {
+      final blockReason = BlockReason(code: 401);
+      
+      expect(blockReason.text, isNull);
+      expect(blockReason.code, 401);
+    });
+
+    test('creates instance from Rule using fromRule factory', () {
+      final rule = Rule(
+        actions: ['read'],
+        subject: ['Post'],
+        inverted: true,
+        reason: 'Insufficient permissions',
+        reasonCode: 403,
+      );
+      
+      final blockReason = BlockReason.fromRule(rule);
+      
+      expect(blockReason.text, 'Insufficient permissions');
+      expect(blockReason.code, 403);
+    });
+
+    test('implements equality and hashCode correctly', () {
+      final blockReason1 = BlockReason(text: 'Access denied', code: 403);
+      final blockReason2 = BlockReason(text: 'Access denied', code: 403);
+      final blockReason3 = BlockReason(text: 'Access denied', code: 401);
+
+      expect(blockReason1, blockReason2);
+      expect(blockReason1, isNot(blockReason3));
+    });
+
+    test('provides meaningful toString representation', () {
+      final blockReason = BlockReason(text: 'Access denied', code: 403);
+      
+      expect(blockReason.toString(), 'BlockReason(text: Access denied, code: 403)');
+    });
+  });
+
+  group('Rule class', () {
+    test('creates Rule from map with all fields', () {
       final rule = Rule.fromMap({
         'actions': ['read', 'write'],
         'subject': ['Post'],
@@ -23,7 +76,7 @@ void main() {
       expect(rule.reasonCode, 403);
     });
 
-    test('should create Rule from map with required fields only', () {
+    test('creates Rule from map with required fields only', () {
       final rule = Rule.fromMap({
         'actions': ['read'],
         'subject': ['Post'],
@@ -38,7 +91,7 @@ void main() {
       expect(rule.reasonCode, isNull);
     });
 
-    test('equality and hashCode', () {
+    test('implements equality and hashCode correctly', () {
       final rule1 = Rule(
         actions: ['read'],
         subject: ['Post'],
@@ -63,7 +116,7 @@ void main() {
     });
   });
 
-  group('CaslDart', () {
+  group('CaslDart basic functionality', () {
     late CaslDart casl;
 
     setUp(() {
@@ -80,22 +133,22 @@ void main() {
       ]);
     });
 
-    test('can() should return true when action is allowed', () {
+    test('allows access when action is permitted', () {
       expect(casl.can('read', 'Post'), isTrue);
       expect(casl.can('manage', 'all'), isFalse);
     });
 
-    test('can() should return false when action is not allowed', () {
+    test('denies access when action is not permitted', () {
       expect(casl.can('write', 'Post'), isFalse);
       expect(casl.can('read', 'Comment'), isFalse);
     });
 
-    test('can() should respect inverted rules', () {
-      // Правило с inverted: true для delete на Post
+    test('respects inverted rules correctly', () {
+      // Rule with inverted: true for delete on Post
       expect(casl.can('delete', 'Post'), isFalse);
     });
 
-    test('updateRules() should replace all rules and notify', () {
+    test('updates rules and notifies listeners', () {
       var notified = false;
       casl.addListener(() => notified = true);
 
@@ -112,7 +165,7 @@ void main() {
       expect(casl.can('read', 'Post'), isFalse);
     });
 
-    test('initRules() should replace all rules without notifying', () {
+    test('initializes rules without notifying listeners', () {
       var notified = false;
       casl.addListener(() => notified = true);
 
@@ -129,7 +182,7 @@ void main() {
       expect(casl.can('read', 'Post'), isFalse);
     });
 
-    test('unpackRules() should convert nested lists to rule maps', () {
+    test('converts nested lists to rule maps', () {
       final unpacked = casl.unpackRules([
         ['read,write', 'Post,Comment'],
         ['delete', 'Post'],
@@ -148,7 +201,157 @@ void main() {
     });
   });
 
-  group('Manage tests', () {
+  group('CaslDart block reason functionality', () {
+    late CaslDart casl;
+
+    setUp(() {
+      casl = CaslDart(rules: [
+        {
+          'actions': ['read'],
+          'subject': ['Post'],
+        },
+        {
+          'actions': ['delete'],
+          'subject': ['Post'],
+          'inverted': true,
+          'reason': 'Insufficient permissions',
+          'reasonCode': 403,
+        },
+        {
+          'actions': ['write'],
+          'subject': ['Post'],
+          'inverted': true,
+          'reason': 'Post is locked',
+          'reasonCode': 423,
+        },
+      ]);
+    });
+
+    test('returns null when access is allowed', () {
+      final reason = casl.getBlockReason('read', 'Post');
+      
+      expect(reason, isNull);
+    });
+
+    test('returns block reason when access is denied', () {
+      final reason = casl.getBlockReason('delete', 'Post');
+      
+      expect(reason, isNotNull);
+      expect(reason!.text, 'Insufficient permissions');
+      expect(reason.code, 403);
+    });
+
+    test('caches block reason results for performance', () {
+      // First call should compute the reason
+      final reason1 = casl.getBlockReason('delete', 'Post');
+      
+      // Second call should return from cache
+      final reason2 = casl.getBlockReason('delete', 'Post');
+      
+      expect(reason1, reason2);
+      expect(reason1!.text, 'Insufficient permissions');
+    });
+
+    test('returns different reasons for different blocked actions', () {
+      final deleteReason = casl.getBlockReason('delete', 'Post');
+      final writeReason = casl.getBlockReason('write', 'Post');
+      
+      expect(deleteReason!.text, 'Insufficient permissions');
+      expect(writeReason!.text, 'Post is locked');
+      expect(deleteReason.code, 403);
+      expect(writeReason.code, 423);
+    });
+
+    test('returns null for non-existent subject', () {
+      final reason = casl.getBlockReason('read', 'NonExistent');
+      
+      expect(reason, isNull);
+    });
+
+    test('saves block reason when can() denies access', () {
+      // Check that the reason is saved when can is called
+      expect(casl.can('delete', 'Post'), isFalse);
+      
+      final reason = casl.getBlockReason('delete', 'Post');
+      expect(reason, isNotNull);
+      expect(reason!.text, 'Insufficient permissions');
+    });
+
+    test('clears block reason when access becomes allowed', () {
+      // First call can for forbidden action
+      expect(casl.can('delete', 'Post'), isFalse);
+      
+      // Check that the reason was saved
+      expect(casl.getBlockReason('delete', 'Post'), isNotNull);
+      
+      // Update rules to allow access
+      casl.updateRules([
+        {
+          'actions': ['delete'],
+          'subject': ['Post'],
+        },
+      ]);
+      
+      // Now access is allowed
+      expect(casl.can('delete', 'Post'), isTrue);
+      
+      // Reason should be cleared
+      expect(casl.getBlockReason('delete', 'Post'), isNull);
+    });
+
+    test('works with manage action and block reason', () {
+      casl = CaslDart(rules: [
+        {
+          'actions': ['manage'],
+          'subject': ['Post'],
+          'inverted': true,
+          'reason': 'Admin access required',
+          'reasonCode': 401,
+        },
+      ]);
+      
+      final reason = casl.getBlockReason('manage', 'Post');
+      
+      expect(reason, isNotNull);
+      expect(reason!.text, 'Admin access required');
+      expect(reason.code, 401);
+    });
+
+    test('works with all subject and block reason', () {
+      casl = CaslDart(rules: [
+        {
+          'actions': ['read'],
+          'subject': ['all'],
+          'inverted': true,
+          'reason': 'System maintenance',
+          'reasonCode': 503,
+        },
+      ]);
+      
+      final reason = casl.getBlockReason('read', 'Post');
+      
+      expect(reason, isNotNull);
+      expect(reason!.text, 'System maintenance');
+      expect(reason.code, 503);
+    });
+
+    test('returns null when no reason is specified in rule', () {
+      casl = CaslDart(rules: [
+        {
+          'actions': ['delete'],
+          'subject': ['Post'],
+          'inverted': true,
+          // reason and reasonCode are not specified
+        },
+      ]);
+      
+      final reason = casl.getBlockReason('delete', 'Post');
+      
+      expect(reason, isNull);
+    });
+  });
+
+  group('CaslDart manage action functionality', () {
     late CaslDart casl;
 
     setUp(() {
@@ -165,24 +368,24 @@ void main() {
       ]);
     });
 
-    test('can read Post', () {
+    test('allows read action on managed subject', () {
       expect(casl.can('read', 'Post'), isTrue);
     });
 
-    test('can write Post', () {
+    test('allows write action on managed subject', () {
       expect(casl.can('write', 'Post'), isTrue);
     });
 
-    test('cant delete Post', () {
+    test('allows delete action on managed subject', () {
       expect(casl.can('delete', 'Post'), isTrue);
     });
 
-    test('cant manage all', () {
+    test('denies manage action on all subject', () {
       expect(casl.can('manage', 'all'), isFalse);
     });
   });
 
-  group('Subject All Tests', () {
+  group('CaslDart all subject functionality', () {
     late CaslDart casl;
 
     setUp(() {
@@ -199,16 +402,19 @@ void main() {
       ]);
     });
 
-    test('can read Post', () {
+    test('allows read action on any subject', () {
       expect(casl.can('read', 'Post'), isTrue);
     });
-    test('cant write Pots', () {
+    
+    test('denies write action on any subject', () {
       expect(casl.can('write', 'Post'), isFalse);
     });
-    test('can read news', () {
+    
+    test('allows read action on different subject', () {
       expect(casl.can('read', 'News'), isTrue);
     });
-    test('cant manage all', () {
+    
+    test('denies manage action on all subject', () {
       expect(casl.can('manage', 'all'), isFalse);
     });
   });

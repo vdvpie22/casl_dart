@@ -3,23 +3,74 @@ import 'package:flutter/foundation.dart';
 /// A function type that defines conditions for access control.
 typedef ConditionsFunction = bool Function(dynamic subject);
 
+/// Represents a block reason with both text and code.
+class BlockReason {
+  /// The text description of the block reason.
+  final String? text;
+
+  /// The numeric code of the block reason.
+  final int? code;
+
+  /// Creates a new [BlockReason] instance.
+  const BlockReason({this.text, this.code});
+
+  /// Creates a [BlockReason] from a [Rule].
+  factory BlockReason.fromRule(Rule rule) {
+    return BlockReason(text: rule.reason, code: rule.reasonCode);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is BlockReason &&
+        other.text == text &&
+        other.code == code;
+  }
+
+  @override
+  int get hashCode => text.hashCode ^ code.hashCode;
+
+  @override
+  String toString() => 'BlockReason(text: $text, code: $code)';
+}
+
 /// A class representing the main access control logic.
 class CaslDart extends ChangeNotifier {
   /// The list of access control rules.
   final List<Rule> rules;
+
+  /// Map of block reasons for action+subject combinations.
+  final Map<String, BlockReason?> blockReasons = {};
 
   /// Creates a new instance of [CaslDart] with an optional list of rules.
   ///
   /// [rules] is a list of maps where each map defines an access rule.
   CaslDart({List<Map<String, dynamic>> rules = const []}) : rules = rules.map((r) => Rule.fromMap(r)).toList();
 
+  /// Returns the reason for blocking access to [action] on [subject].
+  /// If the reason is already cached, returns it. Otherwise, computes it via [can] and caches the result.
+  BlockReason? getBlockReason(String action, String subject) {
+    final key = _blockKey(action, subject);
+    if (blockReasons.containsKey(key)) {
+      return blockReasons[key];
+    }
+    // Call can to compute and save the block reason
+    can(action, subject);
+    return blockReasons[key];
+  }
+
+  /// Internal helper to generate a unique key for action+subject.
+  String _blockKey(String action, String subject) => '${action}_$subject';
+
   /// Checks if a given [action] is allowed on a given [subject].
   ///
   /// Returns `true` if an access rule allows the action, otherwise `false`.
-  bool can(String action, dynamic subject) {
+  /// If access is denied, saves the block reason (if any) in [blockReasons].
+  bool can(String action, String subject) {
     final List<String> allSubjectOperations = [];
     final List<String> manageActionSubjects = [];
     bool allowAll = false;
+    BlockReason? blockReason;
     for (var rule in rules) {
       if (rule.subject.contains('all')) {
         allSubjectOperations.addAll(rule.actions);
@@ -27,34 +78,55 @@ class CaslDart extends ChangeNotifier {
       if (rule.actions.contains('manage')) {
         manageActionSubjects.addAll(rule.subject);
       }
-      // Check if there's a rule with subject 'all' for this action
       if (rule.subject.contains('all') && rule.actions.contains('manage')) {
         allowAll = true;
       }
     }
 
-    return rules.any((rule) {
+    bool allowed = rules.any((rule) {
       if (allowAll) {
         return true;
       }
-
-      // Check subject match (either specific subject or 'all')
       bool subjectMatches = allSubjectOperations.contains(action) || rule.subject.contains(subject);
-
-      // Check action match
       bool actionMatches = manageActionSubjects.contains(subject) || rule.actions.contains(action);
-
       if (!subjectMatches) {
-        // Don't apply the rule if we didn't find subject matches and not everything is allowed
         return false;
       }
-
-      // Determine if the action is allowed
-      bool allowed = subjectMatches && actionMatches;
-
-      // Apply inversion if needed
-      return rule.inverted && allowed ? !allowed : allowed;
+      bool isAllowed = subjectMatches && actionMatches;
+      // If the rule is inverted and matches, then it denies access
+      if (rule.inverted && isAllowed) {
+        if ((rule.reason != null || rule.reasonCode != null) && blockReason == null) {
+          blockReason = BlockReason.fromRule(rule);
+        }
+        return !isAllowed;
+      }
+      return isAllowed;
     });
+
+    // Save the block reason if access is denied
+    final key = _blockKey(action, subject);
+    if (!allowed) {
+      // If we didn't find a reason, look for the first reason among inverted rules
+      if (blockReason == null) {
+        final firstBlockRule = rules.firstWhere(
+          (rule) {
+            bool subjectMatches = allSubjectOperations.contains(action) || rule.subject.contains(subject);
+            bool actionMatches = manageActionSubjects.contains(subject) || rule.actions.contains(action);
+            bool isAllowed = subjectMatches && actionMatches;
+            return rule.inverted && isAllowed && (rule.reason != null || rule.reasonCode != null);
+          },
+          orElse: () => Rule(actions: [], subject: [], inverted: false),
+        );
+        if (firstBlockRule.reason != null || firstBlockRule.reasonCode != null) {
+          blockReason = BlockReason.fromRule(firstBlockRule);
+        }
+      }
+      blockReasons[key] = blockReason;
+    } else {
+      // If access is allowed, clear the reason
+      blockReasons.remove(key);
+    }
+    return allowed;
   }
 
   /// Updates the existing rules with a new set of [newRules].
